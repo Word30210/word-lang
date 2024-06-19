@@ -1,0 +1,3 @@
+for let i := 1, 10 do
+    stdio.output(i)
+end

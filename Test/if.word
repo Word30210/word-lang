@@ -1,0 +1,7 @@
+let value
+
+if (value := "word") = "word" then
+    stdio.output("value is word")
+else
+    stdio.output("value is not word")
+end

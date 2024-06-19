@@ -1,0 +1,9 @@
+let value := false
+let count := 0
+
+while not value do
+    if (count :+ 1) >= 10 then
+        value = true
+    end
+    stdio.output(count)
+end

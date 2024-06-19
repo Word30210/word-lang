@@ -1,0 +1,14 @@
+fn print(?) do
+    stdio.output(?)
+end
+
+/* 함수 앞에 !를 붙혀서 쓰레드 분리도 가능 함 */
+
+print("Hello") /* 서로 다른 쓰레드 */
+!print("world!") /* 서로 다른 쓰레드 */
+
+/* 또한 함수는 일급 객체로서, 변수에 넣을 수도 있음 */
+
+let print2 := fn(?) do
+    stdio.output(?)
+end

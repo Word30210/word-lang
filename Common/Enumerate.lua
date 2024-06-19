@@ -14,7 +14,7 @@ local function enumerate(enumName, enumItems)
     local items = {}
 
     for _, name in ipairs(enumItems) do
-        items[name] = {}
+        items[name] = { name }
     end
 
     return strict(enumName, items)

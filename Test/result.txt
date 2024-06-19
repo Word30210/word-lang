@@ -1,0 +1,79 @@
+{
+    [1] = {
+        ["startPosition"] = 1;
+        ["endPosition"] = 4;
+        ["kind"] = { "let" };
+    };
+    [2] = {
+        ["startPosition"] = 5;
+        ["value"] = "hello";
+        ["endPosition"] = 10;
+        ["kind"] = { "iden" };
+    };
+    [3] = {
+        ["startPosition"] = 11;
+        ["endPosition"] = 13;
+        ["kind"] = { "equal" };
+    };
+    [4] = {
+        ["startPosition"] = 14;
+        ["value"] = "Hello, world!";
+        ["endPosition"] = 29;
+        ["kind"] = { "string" };
+    };
+    [5] = {
+        ["startPosition"] = 30;
+        ["value"] = "
+
+    This
+    is
+    multi-line
+    comment
+
+";
+        ["endPosition"] = 80;
+        ["kind"] = { "multilineComment" };
+    };
+    [6] = {
+        ["startPosition"] = 81;
+        ["endPosition"] = 84;
+        ["kind"] = { "let" };
+    };
+    [7] = {
+        ["startPosition"] = 85;
+        ["value"] = "number";
+        ["endPosition"] = 91;
+        ["kind"] = { "iden" };
+    };
+    [8] = {
+        ["startPosition"] = 92;
+        ["endPosition"] = 94;
+        ["kind"] = { "equal" };
+    };
+    [9] = {
+        ["startPosition"] = 95;
+        ["value"] = "0.1";
+        ["endPosition"] = 98;
+        ["kind"] = { "number" };
+    };
+    [10] = {
+        ["startPosition"] = 99;
+        ["value"] = "print";
+        ["endPosition"] = 104;
+        ["kind"] = { "iden" };
+    };
+    [11] = {
+        ["startPosition"] = 104;
+        ["endPosition"] = 105;
+        ["kind"] = { "leftParen" };
+    };
+    [12] = {
+        ["startPosition"] = 105;
+        ["value"] = "hello";
+        ["endPosition"] = 110;
+        ["kind"] = { "iden" };
+    };
+    [13] = {
+        ["kind"] = { "eof" };
+    };
+};

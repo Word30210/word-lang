@@ -1,2 +1,11 @@
 let hello := "Hello, world!"
-stdio.output(hello)
+/*
+
+    This
+    is
+    multi-line
+    comment
+
+*/
+let number := 0.1
+print(hello, number)

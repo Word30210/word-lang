@@ -4,8 +4,8 @@ local Lexer = {}
 Lexer.__index = Lexer
 
 Lexer.alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-Lexer.digits = "0123456789"
-Lexer.whitespaces = "\32\t\n\r\f"
+Lexer.digit = "0123456789"
+Lexer.whitespace = "\32\t\n\r\f"
 Lexer.escapeSequences = {
     ["a"] = "\a";
     ["b"] = "\b";
@@ -18,7 +18,8 @@ Lexer.escapeSequences = {
     ["'"] = "'";
     ['"'] = '"';
 }
-Lexer.iden = "[%a_][%w_]*"
+Lexer.iden = Lexer.alphabet .. Lexer.digit .. "_"
+Lexer.number = Lexer.digit .. "."
 Lexer.keywords = {
     ["let"] = Token.kind.let;
     ["do"] = Token.kind["do"];
@@ -70,20 +71,16 @@ Lexer.operators = {
     [":/"] = Token.kind.dashEqual;
     [":%"] = Token.kind.moduloEqual;
     [":^"] = Token.kind.caretEqual;
-
-    ["//"] = Token.kind.comment;
-    ["/*"] = Token.kind.multilineCommentStart;
-    ["*/"] = Token.kind.multilineCommentEnd;
 }
 
 function Lexer.new(source)
-    local this = {}
+    local self = {}
 
-    this._source = source
-    this._position = 1
-    this._tokens = {}
+    self._source = source
+    self._position = 1
+    self._tokens = {}
 
-    return setmetatable(this, Lexer)
+    return setmetatable(self, Lexer)
 end
 
 function Lexer.is(object)
@@ -94,7 +91,7 @@ function Lexer.sortOperators(operatorTable)
     local tables = {}
 
     for operator, token in pairs(operatorTable) do
-        local length = #operator
+        local length = operator:len()
 
         if not tables[length] then
             for i = 1, length do
@@ -104,30 +101,32 @@ function Lexer.sortOperators(operatorTable)
 
         tables[length][operator] = token
     end
+
+    return tables
 end
 
-function Lexer:_error(str, ...)
+function Lexer:error(str, ...)
     error(str:format(...))
 end
 
-function Lexer:_peek(count)
+function Lexer:peek(count)
     count = count or 0
     local endPosition = count + self._position
     return self._source:sub(self._position, endPosition)
 end
 
-function Lexer:_match(toMatch)
-    return Lexer:_peek(#toMatch - 1) == toMatch
+function Lexer:match(toMatch)
+    return self:peek(#toMatch - 1) == toMatch
 end
 
-function Lexer:_advance()
-    local character = self:_peek()
+function Lexer:advance()
+    local character = self:peek()
     self._position = self._position + 1
     return character
 end
 
-function Lexer:_accept(toMatch)
-    if self:_match(toMatch) then
+function Lexer:accept(toMatch)
+    if self:match(toMatch) then
         self._position = self._position + #toMatch
         return toMatch
     end
@@ -135,28 +134,29 @@ function Lexer:_accept(toMatch)
     return nil
 end
 
-function Lexer:_expect(toMatch)
-    local match = self:_accept(toMatch)
+function Lexer:expect(toMatch)
+    local match = self:accept(toMatch)
     if not match then
-        self:_error("Expected %s", toMatch)
+        self:error("Expected %s", toMatch)
     end
 
     return match
 end
 
-function Lexer:_readString()
+function Lexer:readString()
     local start = self._position
-    local quote = self:_accept("'") or self:_accept('"')
     local charArray = {}
 
-    while not self:_accept(quote) do
-        local character = self:_advance()
+    local quote = self:accept("'") or self:accept('"')
+
+    while not self:accept(quote) do
+        local character = self:advance()
 
         if character == "\\" then
-            local escapeChar = self:_advance()
+            local escapeChar = self:advance()
             local escapeSequence = Lexer.escapeSequences[escapeChar]
             if not escapeSequence then
-                self:_error("%s is not a valid escape sequence", escapeChar)
+                self:error("%s is not a valid escape sequence", escapeChar)
                 break
             end
 
@@ -169,3 +169,128 @@ function Lexer:_readString()
     local asString = table.concat(charArray)
     return Token.new(Token.kind.string, start, self._position, asString)
 end
+
+function Lexer:readComment()
+    local start = self._position
+    local charArray = {}
+
+    self:accept("//")
+
+    while not self:accept("\n") do
+        table.insert(charArray, self:advance())
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind.comment, start, self._position, asString)
+end
+
+function Lexer:readMultlineComment()
+    local start = self._position
+    local charArray = {}
+
+    self:accept("/*")
+
+    while not self:accept("*/") do
+        table.insert(charArray, self:advance())
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind.multilineComment, start, self._position, asString)
+end
+
+function Lexer:readNumber()
+    local start = self._position
+    local charArray = {}
+
+    local dotCount = false
+    while true do
+        local character = self:peek()
+        if dotCount and Lexer.digit:find(character, 1, true) then
+            table.insert(charArray, self:advance())
+        elseif Lexer.number:find(character, 1, true) then
+            table.insert(charArray, self:advance())
+        else break end
+
+        if character == "." then
+            dotCount = true
+        end
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind.number, start, self._position, asString)
+end
+
+function Lexer:readIden()
+    local start = self._position
+    local charArray = {}
+
+    while Lexer.iden:find(self:peek(), 1, true) do
+        table.insert(charArray, self:advance())
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind.iden, start, self._position, asString)
+end
+
+function Lexer:read()
+    local start = self._position
+
+    if self:match("//") then
+        return self:readComment()
+    end
+    if self:match("/*") then
+        return self:readMultlineComment()
+    end
+    if self:match("'") or self:match('"') then
+        return self:readString()
+    end
+
+    for keyword, tokenType in pairs(Lexer.keywords) do
+        if self:accept(keyword) then
+            return Token.new(tokenType, start, self._position)
+        end
+    end
+
+    for operatorLength = #Lexer.operators, 1, -1 do
+        local operatorGroup = Lexer.operators[operatorLength]
+
+        for operator, tokenType in pairs(operatorGroup) do
+            if self:accept(operator) then
+                return Token.new(tokenType, start, self._position)
+            end
+        end
+    end
+
+    local character = self:peek()
+    if Lexer.whitespace:find(character, 1, true) then
+        self:advance()
+        return true
+    end
+    if Lexer.digit:find(character, 1, true) then
+        return self:readNumber()
+    end
+    if (Lexer.alphabet .. "_"):find(character, 1, true) then
+        return self:readIden()
+    end
+end
+
+function Lexer:scan()
+    while self._position <= #self._source do
+        local token = self:read()
+
+        if not token then
+            break
+        end
+
+        if Token.is(token) then
+            table.insert(self._tokens, token)
+        end
+    end
+
+    table.insert(self._tokens, Token.new(Token.kind.eof))
+    return self._tokens
+end
+
+Lexer.operators = Lexer.sortOperators(Lexer.operators)
+
+return Lexer

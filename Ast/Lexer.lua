@@ -1,4 +1,4 @@
-local Token = require("Ast/Token")
+local Token = require("Ast.Token")
 
 local Lexer = {}
 Lexer.__index = Lexer
@@ -6,6 +6,9 @@ Lexer.__index = Lexer
 Lexer.alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 Lexer.digit = "0123456789"
 Lexer.whitespace = "\32\t\n\r\f"
+Lexer.iden = Lexer.alphabet .. Lexer.digit .. "_"
+Lexer.number = Lexer.digit .. "."
+
 Lexer.escapeSequences = {
     ["a"] = "\a";
     ["b"] = "\b";
@@ -18,8 +21,18 @@ Lexer.escapeSequences = {
     ["'"] = "'";
     ['"'] = '"';
 }
-Lexer.iden = Lexer.alphabet .. Lexer.digit .. "_"
-Lexer.number = Lexer.digit .. "."
+
+Lexer.escapeSequenceToPlain = {
+    ["\a"] = "\\a";
+    ["\b"] = "\\b";
+    ["\f"] = "\\f";
+    ["\n"] = "\\n";
+    ["\r"] = "\\r";
+    ["\t"] = "\\t";
+    ["\v"] = "\\v";
+    ["\\"] = "\\\\";
+}
+
 Lexer.keywords = {
     ["let"] = Token.kind.let;
     ["do"] = Token.kind["do"];
@@ -29,24 +42,34 @@ Lexer.keywords = {
     ["else"] = Token.kind["else"];
     ["for"] = Token.kind["for"];
     ["while"] = Token.kind["while"];
+    ["each"] = Token.kind.each;
+    ["in"] = Token.kind["in"];
     ["fn"] = Token.kind.fn;
     ["true"] = Token.kind["true"];
     ["false"] = Token.kind["false"];
     ["null"] = Token.kind.null;
+    ["break"] = Token.kind["break"];
+    ["return"] = Token.kind["return"];
+    ["goto"] = Token.kind["goto"];
 }
+
 Lexer.operators = {
     ["+"] = Token.kind.plus;
     ["-"] = Token.kind.minus;
     ["*"] = Token.kind.star;
-    ["/"] = Token.kind.dash;
+    ["/"] = Token.kind.slash;
     ["%"] = Token.kind.modulo;
     ["#"] = Token.kind.hashtag;
     ["^"] = Token.kind.caret;
     [";"] = Token.kind.semiColon;
     [":"] = Token.kind.colon;
     ["."] = Token.kind.dot;
+    [","] = Token.kind.comma;
+    ["~"] = Token.kind.tilde;
     ["?"] = Token.kind.questionMark;
     ["!"] = Token.kind.exclamationMark;
+    ["@"] = Token.kind.atTheRate;
+    ["$"] = Token.kind.dollar;
     ["&"] = Token.kind.ampersand;
     ["|"] = Token.kind.pipe;
 
@@ -68,9 +91,10 @@ Lexer.operators = {
     [":+"] = Token.kind.plusEqual;
     [":-"] = Token.kind.minusEqual;
     [":*"] = Token.kind.starEqual;
-    [":/"] = Token.kind.dashEqual;
+    [":/"] = Token.kind.slashEqual;
     [":%"] = Token.kind.moduloEqual;
     [":^"] = Token.kind.caretEqual;
+    [":~"] = Token.kind.tildeEqual;
 }
 
 function Lexer.new(source)
@@ -105,14 +129,39 @@ function Lexer.sortOperators(operatorTable)
     return tables
 end
 
+function Lexer.find(s, pattern, init, plain)
+    if s == "" then return false end --// EOF
+    if pattern == "" then return false end --// EOF
+
+    return string.find(s, pattern, init, plain)
+end
+
 function Lexer:error(str, ...)
     error(str:format(...))
+end
+
+function Lexer:errorWithLineAndColumn(str, ...)
+    local line, column = 1, 1
+    self._source:sub(1, self._position - 1):gsub(".", function(c)
+        if c == "\n" then
+            line = line + 1
+            column = 1
+        else
+            column = column + 1
+        end
+    end)
+
+    Lexer:error(str, line, column, ...)
 end
 
 function Lexer:peek(count)
     count = count or 0
     local endPosition = count + self._position
     return self._source:sub(self._position, endPosition)
+end
+
+function Lexer:next()
+    return self._source:sub(self._position + 1, self._position + 1)
 end
 
 function Lexer:match(toMatch)
@@ -134,15 +183,6 @@ function Lexer:accept(toMatch)
     return nil
 end
 
-function Lexer:expect(toMatch)
-    local match = self:accept(toMatch)
-    if not match then
-        self:error("Expected %s", toMatch)
-    end
-
-    return match
-end
-
 function Lexer:readString()
     local start = self._position
     local charArray = {}
@@ -150,20 +190,17 @@ function Lexer:readString()
     local quote = self:accept("'") or self:accept('"')
 
     while not self:accept(quote) do
-        local character = self:advance()
+        local char = self:advance()
 
-        if character == "\\" then
+        if char == "\\" then
             local escapeChar = self:advance()
-            local escapeSequence = Lexer.escapeSequences[escapeChar]
-            if not escapeSequence then
-                self:error("%s is not a valid escape sequence", escapeChar)
-                break
-            end
-
-            character = escapeChar
+            local escapeSequences = Lexer.escapeSequences[escapeChar] or escapeChar
+            char = escapeSequences
+        elseif char == "\n" or char == "" then
+            self:errorWithLineAndColumn("<word.lexer:%s:%s> the string is not finished | %s", table.concat(charArray))
         end
 
-        table.insert(charArray, character)
+        table.insert(charArray, char)
     end
 
     local asString = table.concat(charArray)
@@ -198,28 +235,6 @@ function Lexer:readMultlineComment()
     return Token.new(Token.kind.multilineComment, start, self._position, asString)
 end
 
-function Lexer:readNumber()
-    local start = self._position
-    local charArray = {}
-
-    local dotCount = false
-    while true do
-        local character = self:peek()
-        if dotCount and Lexer.digit:find(character, 1, true) then
-            table.insert(charArray, self:advance())
-        elseif Lexer.number:find(character, 1, true) then
-            table.insert(charArray, self:advance())
-        else break end
-
-        if character == "." then
-            dotCount = true
-        end
-    end
-
-    local asString = table.concat(charArray)
-    return Token.new(Token.kind.number, start, self._position, asString)
-end
-
 function Lexer:readIden()
     local start = self._position
     local charArray = {}
@@ -232,17 +247,42 @@ function Lexer:readIden()
     return Token.new(Token.kind.iden, start, self._position, asString)
 end
 
+function Lexer:readNumber()
+    local start = self._position
+    local charArray = {}
+
+    local dotCount = false
+    while true do
+        local char = self:peek()
+
+        local target = dotCount and Lexer.digit or Lexer.number
+
+        if self.find(target, char, 1, true) then
+            table.insert(charArray, self:advance())
+        else break end
+
+        dotCount = dotCount or char == "."
+    end
+
+    if charArray[#charArray] == "." then
+        self:errorWithLineAndColumn("<word.lexer:%s:%s> Number is not finished | %s", table.concat(charArray))
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind.number, start, self._position, asString)
+end
+
 function Lexer:read()
     local start = self._position
 
+    if self:match("'") or self:match('"') then
+        return self:readString()
+    end
     if self:match("//") then
         return self:readComment()
     end
     if self:match("/*") then
         return self:readMultlineComment()
-    end
-    if self:match("'") or self:match('"') then
-        return self:readString()
     end
 
     for keyword, tokenType in pairs(Lexer.keywords) do
@@ -261,17 +301,19 @@ function Lexer:read()
         end
     end
 
-    local character = self:peek()
-    if Lexer.whitespace:find(character, 1, true) then
+    local char = self:peek()
+    if Lexer.whitespace:find(char, 1, true) then
         self:advance()
         return true
     end
-    if Lexer.digit:find(character, 1, true) then
+    if Lexer.digit:find(char, 1, true) then
         return self:readNumber()
     end
-    if (Lexer.alphabet .. "_"):find(character, 1, true) then
+    if (Lexer.alphabet .. "_"):find(char, 1, true) then
         return self:readIden()
     end
+
+    self:errorWithLineAndColumn("<word.lexer:%s:%s> Lexical error: %s", self:peek())
 end
 
 function Lexer:scan()

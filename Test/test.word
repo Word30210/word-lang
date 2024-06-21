@@ -1,11 +1,1 @@
-let hello := "Hello, world!"
-/*
-
-    This
-    is
-    multi-line
-    comment
-
-*/
-let number := 0.1
-print(hello, number)
+let a := "a"

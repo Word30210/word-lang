@@ -80,7 +80,7 @@ local function Dump(t, i)
 	return result
 end
 
-local file = io.open("test\\test.word", "r")
+local file = io.open("test\\function.word", "r")
 
 if file then
     local source = file:read("a")
@@ -90,8 +90,9 @@ if file then
     local result = newLexer:scan()
     local dumpedTable = Dump(result)
 
-    -- print(dumpedTable)
-
+    for _, data in ipairs(result) do
+		print(data.value or data.kind[1], data.kind[1])
+	end
     local result_txt = io.open("test\\result.txt", "w")
     if result_txt then
         result_txt:write(dumpedTable)

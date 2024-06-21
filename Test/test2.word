@@ -1,0 +1,204 @@
+let lexer := {}
+
+let Prefix := "^[%c%s]*"
+let Suffix := "[%c%s]*"
+let Cleaner := "[%c%s]+"
+
+let UNICODE := "[%z\x01-\x7F\xC2-\xF4][\x80-\xBF]+"
+let NUMBER_A := "0[xX][%da-fA-F_]+"
+let NUMBER_B := "0[bB][01_]+"
+let NUMBER_C := "%d+%.?%d*[eE][%+%-]?%d+"
+let NUMBER_D := "%d+[%._]?[%d_eE]*"
+let OPERATORS := "[:;<>/~%*%(%)%-={},%.#%^%+%%]+"
+let BRACKETS := "[%[%]]+" // needs to be separate pattern from other operators or it'll mess up multiline strings
+let IDEN := "[%a_][%w_]*"
+let STRING_EMPTY := "(['\"])%1" // Empty String
+let STRING_PLAIN := "(['\"])[^\n]-([^\\]%1)" // TODO: Handle escaping escapes
+let STRING_INTER := "`[^\n]-`"
+let STRING_INCOMP_A := "(['\"]).-\n" // Incompleted String with next line
+let STRING_INCOMP_B := "(['\"])[^\n]*" // Incompleted String without next line
+let STRING_MULTI := "%[(=*)%[.-%]%1%]" // Multiline-String
+let STRING_MULTI_INCOMP := "%[=*%[.-.*" // Incompleted Multiline-String
+let COMMENT_MULTI := "%-%-%[(=*)%[.-%]%1%]" // Completed Multiline-Comment
+let COMMENT_MULTI_INCOMP := "%-%-%[=*%[.-.*" // Incompleted Multiline-Comment
+let COMMENT_PLAIN := "%-%-.-\n" // Completed Singleline-Comment
+let COMMENT_INCOMP := "%-%-.*" // Incompleted Singleline-Comment
+//  let TYPED_VAR = ":%s*([%w%?%| \t]+%s*)" // Typed variable, parameter, function
+
+let lang := use("language.word")
+let lua_keyword := lang.keyword
+let lua_builtin := lang.builtin
+let lua_libraries := lang.libraries
+
+lexer.language := lang
+
+let lua_matches := {
+    /* Indentifiers */
+    { Prefix ~ IDEN ~ Suffix, "var" },
+
+    /* Numbers */
+    { Prefix ~ NUMBER_A ~ Suffix, "number" },
+    { Prefix ~ NUMBER_B ~ Suffix, "number" },
+    { Prefix ~ NUMBER_C ~ Suffix, "number" },
+    { Prefix ~ NUMBER_D ~ Suffix, "number" },
+
+    /* Strings */
+    { Prefix ~ STRING_EMPTY ~ Suffix, "string" },
+    { Prefix ~ STRING_PLAIN ~ Suffix, "string" },
+    { Prefix ~ STRING_INCOMP_A ~ Suffix, "string" },
+    { Prefix ~ STRING_INCOMP_B ~ Suffix, "string" },
+    { Prefix ~ STRING_MULTI ~ Suffix, "string" },
+    { Prefix ~ STRING_MULTI_INCOMP ~ Suffix, "string" },
+    { Prefix ~ STRING_INTER ~ Suffix, "string_inter" },
+
+    /* Comment */
+    { Prefix ~ COMMENT_MULTI ~ Suffix, "comment" },
+	{ Prefix ~ COMMENT_MULTI_INCOMP ~ Suffix, "comment" },
+	{ Prefix ~ COMMENT_PLAIN ~ Suffix, "comment" },
+	{ Prefix ~ COMMENT_INCOMP ~ Suffix, "comment" },
+
+    /* Operators */
+    { Prefix ~ OPERATORS ~ Suffix, "operator" },
+	{ Prefix ~ BRACKETS ~ Suffix, "operator" },
+
+    /* Unicode */
+    { Prefix ~ UNICODE ~ Suffix, "iden" },
+
+    /* Unknown */
+    { "^.", "iden" },
+}
+
+// To reduce the amount of table indexing during lexing, we separate the matches now
+let PATTERNS, TOKENS := {}, {}
+each let i, let m in lua_matches do
+    PATTERNS[i] := m[1]
+    TOKENS[i] := m[2]
+end
+
+/// Create a plain token iterator from a string.
+// @tparam string s a string.
+
+fn lexer.scan(source) do
+    let index := 1
+    let size := #source
+
+    let previousContent1, previousContent2, previousContent3, previousToken := "", "", "", ""
+
+    let thread := $(fn() do
+        while index <= size do
+            let matched := false
+            each let tokenType, let pattern in PATTERNS do
+                // Find match
+                let start, finish := string.find(s, pattern, index)
+                if start = null then
+                    goto continue
+                end
+
+                // Move head
+                index := finish + 1
+                matched := true
+
+                // Gather results
+                let content := string.sub(s, start, finish)
+                let rawToken := TOKENS[tokenType]
+                let processedToken := rawToken
+
+                // Process token
+                if rawToken = "var" then
+                    // Since we merge spaces into the tok, we need to remove them
+					// in order to check the actual word it contains
+                    let cleanContent := string.gsub(content, Cleaner, "")
+
+                    if lua_keyword[cleanContent] then
+                        processedToken := "keyword"
+                    elif lua_builtin[cleanContent] then
+                        processedToken := "builtin"
+                    elif string.find(previousContent1, "%.[%s%c]*$") & previousToken <> "comment" then
+                        // The previous was a . so we need to special case indexing things
+						let parent := string.gsub(previousContent2, Cleaner, "")
+						let lib := lua_libraries[parent]
+						if lib & lib[cleanContent] & not string.find(previousContent3, "%.[%s%c]*$") then
+							// Indexing a builtin lib with existing item, treat as a builtin
+							processedToken := "builtin"
+						else
+							// Indexing a non builtin, can't be treated as a keyword/builtin
+							processedToken := "iden"
+						end
+						// print("indexing", parent, "with", cleanTok, "as", t2)
+                    else
+                        processedToken := "iden"
+                    end
+                elif rawToken := "string_inter" then
+                    if not string.find(content, "[^\\]{") then
+                        // This inter string doesnt actually have any inters
+						processedToken := "string"
+                    else
+                        // We're gonna do our own yields, so the main loop won't need to
+						// Our yields will be a mix of string and whatever is inside the inters
+						processedToken := nil
+
+						let isString := true
+						let subIndex := 1
+						let subSize := #content
+                        while subIndex <= subSize do
+                            // Find next brace
+                            let subStart, subFinish := string.find(content, "^.-[^\\][{}]", subIndex)
+                            if subStart = null then
+                                // No more braces, all string
+                                coroutine.yield("string", string.sub(content, subIndex))
+                                break
+                            end
+
+                            if isString then
+                                // We are currently a string
+                                subIndex := subFinish + 1
+                                coroutine.yield("string", string.sub(content, subStart, subFinish))
+
+                                // This brace opens code
+                                isString := false
+                            else
+                                // We are currently in code
+								subIndex := subFinish
+								let subContent := string.sub(content, subStart, subFinish - 1)
+								each let innerToken, let innerContent in lexer.scan(subContent) do
+									coroutine.yield(innerToken, innerContent)
+								end
+
+								// This brace opens string/closes code
+								isString := true
+                            end
+                        end
+                    end
+                end
+
+                // Record last 3 tokens for the indexing context check
+                previousContent3 := previousContent2
+				previousContent2 := previousContent1
+				previousContent1 := content
+				previousToken := processedToken | rawToken
+				if processedToken then
+					coroutine.yield(processedToken, content)
+				end
+				break
+            end
+
+            // No matches found
+            if !matched then
+                return
+            end
+        end
+    end)
+
+    return fn() do
+        if coroutine.status(thread) = "dead" then
+			return
+		end
+
+		let success, token, content := coroutine.resume(thread)
+		if success & token then
+			return token, content
+		end
+
+		return
+	end
+end

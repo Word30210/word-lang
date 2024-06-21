@@ -1,15 +1,15 @@
-local Enumerate = require("Common/Enumerate")
+local Enumerate = require("Common.Enumerate")
 
 local Token = {}
 Token.__index = Token
 
 Token.kind = Enumerate("Token.kind", {
-    "let", "do", "end", "if", "elif", "else", "for", "while", "fn", "true", "false", "null", "break",
+    "let", "do", "end", "if", "elif", "else", "for", "while", "each", "in", "fn", "true", "false", "null", "break", "return", "goto",
 
-    "plus", "minus", "star", "dash", "modulo", "hashtag", "caret", "semiColon", "colon", "dot", "questionMark", "exclamationMark", "ampersand", "pipe",
+    "plus", "minus", "star", "slash", "modulo", "hashtag", "caret", "semiColon", "colon", "dot", "comma", "tilde", "questionMark", "exclamationMark", "atTheRate", "dollar", "ampersand", "pipe",
     "equal", "notEqual", "equalTo", "lessThan", "lessEqual", "greaterThan", "greaterEqual",
     "leftParen", "rightParen", "leftBrace", "rightBrace", "leftBracket", "rightBracket",
-    "plusEqual", "minusEqual", "starEqual", "dashEqual", "moduloEqual", "caretEqual",
+    "plusEqual", "minusEqual", "starEqual", "slashEqual", "moduloEqual", "caretEqual", "tildeEqual",
 
     "comment", "multilineComment",
 
@@ -17,14 +17,14 @@ Token.kind = Enumerate("Token.kind", {
 })
 
 function Token.new(tokenKind, startPosition, endPosition, value)
-    local this = {}
+    local self = {}
 
-    this.kind = tokenKind
-    this.startPosition = startPosition
-    this.endPosition = endPosition
-    this.value = value
+    self.kind = tokenKind
+    self.startPosition = startPosition
+    self.endPosition = endPosition
+    self.value = value
 
-    return setmetatable(this, Token)
+    return setmetatable(self, Token)
 end
 
 function Token.is(object)

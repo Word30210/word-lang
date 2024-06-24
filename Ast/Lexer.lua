@@ -35,8 +35,6 @@ Lexer.escapeSequenceToPlain = {
 
 Lexer.keywords = {
     ["let"] = Token.kind.let;
-    ["do"] = Token.kind["do"];
-    ["end"] = Token.kind["end"];
     ["if"] = Token.kind["if"];
     ["elif"] = Token.kind.elif;
     ["else"] = Token.kind["else"];
@@ -186,6 +184,7 @@ end
 function Lexer:readString()
     local start = self._position
     local charArray = {}
+    local tokenName = "string"
 
     local quote = self:accept("'") or self:accept('"')
 
@@ -197,14 +196,15 @@ function Lexer:readString()
             local escapeSequences = Lexer.escapeSequences[escapeChar] or escapeChar
             char = escapeSequences
         elseif char == "\n" or char == "" then
-            self:errorWithLineAndColumn("<word.lexer:%s:%s> the string is not finished | %s", table.concat(charArray))
+            tokenName = "incompleteString"
+            break
         end
 
         table.insert(charArray, char)
     end
 
     local asString = table.concat(charArray)
-    return Token.new(Token.kind.string, start, self._position, asString)
+    return Token.new(Token.kind[tokenName], start, self._position, asString)
 end
 
 function Lexer:readComment()
@@ -240,6 +240,7 @@ function Lexer:readIden()
     local charArray = {}
 
     while Lexer.iden:find(self:peek(), 1, true) do
+        if self:peek() == "" then break end --// EOF
         table.insert(charArray, self:advance())
     end
 
@@ -255,21 +256,69 @@ function Lexer:readNumber()
     while true do
         local char = self:peek()
 
-        local target = dotCount and Lexer.digit or Lexer.number
+        if char == "." then
+            if not dotCount then
+                dotCount = true
+            else break end
+        end
 
-        if self.find(target, char, 1, true) then
+        if self.find(Lexer.number, char, 1, true) then
             table.insert(charArray, self:advance())
         else break end
-
-        dotCount = dotCount or char == "."
-    end
-
-    if charArray[#charArray] == "." then
-        self:errorWithLineAndColumn("<word.lexer:%s:%s> Number is not finished | %s", table.concat(charArray))
     end
 
     local asString = table.concat(charArray)
     return Token.new(Token.kind.number, start, self._position, asString)
+end
+
+function Lexer:readDot()
+    local start = self._position
+
+    if self.find(Lexer.digit, self:peek(), 1, true) then
+        local charArray = { "." }
+
+        while true do
+            local char = self:peek()
+
+            if char == "." then break end
+
+            if self.find(Lexer.digit, char, 1, true) then
+                table.insert(charArray, self:advance())
+            else break end
+        end
+
+        local asString = table.concat(charArray)
+        return Token.new(Token.kind.number, start, self._position, asString)
+    else
+        return Token.new(Token.kind.dot, start, self._position)
+    end
+end
+
+function Lexer:readUnknown()
+    local start = self._position
+    local charArray = {}
+
+    local iden = Lexer.iden
+    local digit = Lexer.digit
+    local operators = "" for operator, _ in pairs(Lexer.operators) do
+        operators = operators .. operator
+    end
+    local quote = "'" .. '"'
+
+    while true do
+        local char = self:peek()
+
+        if self.find(iden, char, 1, true) then break end
+        if self.find(digit, char, 1, true) then break end
+        if self.find(operators, char, 1, true) then break end
+        if self.find(quote, char, 1, true) then break end
+        if char == "" then break end
+
+        table.insert(charArray, self:advance())
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind.unknown, start, self._position, asString)
 end
 
 function Lexer:read()
@@ -296,6 +345,10 @@ function Lexer:read()
 
         for operator, tokenType in pairs(operatorGroup) do
             if self:accept(operator) then
+                if operator == "." then
+                    return self:readDot()
+                end
+
                 return Token.new(tokenType, start, self._position)
             end
         end
@@ -313,7 +366,7 @@ function Lexer:read()
         return self:readIden()
     end
 
-    self:errorWithLineAndColumn("<word.lexer:%s:%s> Lexical error: %s", self:peek())
+    return self:readUnknown()
 end
 
 function Lexer:scan()

@@ -4,7 +4,7 @@ local Token = {}
 Token.__index = Token
 
 Token.kind = Enumerate("Token.kind", {
-    "let", "do", "end", "if", "elif", "else", "for", "while", "each", "in", "fn", "true", "false", "null", "break", "return", "goto",
+    "let", "if", "elif", "else", "for", "while", "each", "in", "fn", "true", "false", "null", "break", "return", "goto",
 
     "plus", "minus", "star", "slash", "modulo", "hashtag", "caret", "semiColon", "colon", "dot", "comma", "tilde", "questionMark", "exclamationMark", "atTheRate", "dollar", "ampersand", "pipe",
     "equal", "notEqual", "equalTo", "lessThan", "lessEqual", "greaterThan", "greaterEqual",
@@ -13,7 +13,7 @@ Token.kind = Enumerate("Token.kind", {
 
     "comment", "multilineComment",
 
-    "iden", "string", "number", "eof"
+    "iden", "string", "incompleteString", "number", "unknown", "eof"
 })
 
 function Token.new(tokenKind, startPosition, endPosition, value)

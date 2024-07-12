@@ -1,1 +1,12 @@
-let a := "a"
+fn fibo(n) {
+	if n = 1 {
+		return [1]
+	}
+	if n = 2 {
+		return fibo(n - 1) .. [1]
+	}
+
+	var f := fibo(n - 1)
+
+	return a .. [a[#a - 1] + a[#a]]
+}

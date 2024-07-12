@@ -34,21 +34,21 @@ Lexer.escapeSequenceToPlain = {
 }
 
 Lexer.keywords = {
-    ["let"] = Token.kind.let;
+    ["var"] = Token.kind.var;
+    ["fn"] = Token.kind.fn;
+    ["macro"] = Token.kind.macro;
     ["if"] = Token.kind["if"];
-    ["elif"] = Token.kind.elif;
+    ["elseif"] = Token.kind["elseif"];
     ["else"] = Token.kind["else"];
     ["for"] = Token.kind["for"];
     ["while"] = Token.kind["while"];
     ["each"] = Token.kind.each;
     ["in"] = Token.kind["in"];
-    ["fn"] = Token.kind.fn;
+    ["void"] = Token.kind.void;
     ["true"] = Token.kind["true"];
     ["false"] = Token.kind["false"];
-    ["null"] = Token.kind.null;
     ["break"] = Token.kind["break"];
     ["return"] = Token.kind["return"];
-    ["goto"] = Token.kind["goto"];
 }
 
 Lexer.operators = {
@@ -63,11 +63,8 @@ Lexer.operators = {
     [":"] = Token.kind.colon;
     ["."] = Token.kind.dot;
     [","] = Token.kind.comma;
-    ["~"] = Token.kind.tilde;
     ["?"] = Token.kind.questionMark;
     ["!"] = Token.kind.exclamationMark;
-    ["@"] = Token.kind.atTheRate;
-    ["$"] = Token.kind.dollar;
     ["&"] = Token.kind.ampersand;
     ["|"] = Token.kind.pipe;
 
@@ -92,7 +89,8 @@ Lexer.operators = {
     [":/"] = Token.kind.slashEqual;
     [":%"] = Token.kind.moduloEqual;
     [":^"] = Token.kind.caretEqual;
-    [":~"] = Token.kind.tildeEqual;
+    [":.."] = Token.kind.dot2Equal;
+    [":?"] = Token.kind.questionMarkEqual;
 }
 
 function Lexer.new(source)
@@ -132,24 +130,6 @@ function Lexer.find(s, pattern, init, plain)
     if pattern == "" then return false end --// EOF
 
     return string.find(s, pattern, init, plain)
-end
-
-function Lexer:error(str, ...)
-    error(str:format(...))
-end
-
-function Lexer:errorWithLineAndColumn(str, ...)
-    local line, column = 1, 1
-    self._source:sub(1, self._position - 1):gsub(".", function(c)
-        if c == "\n" then
-            line = line + 1
-            column = 1
-        else
-            column = column + 1
-        end
-    end)
-
-    Lexer:error(str, line, column, ...)
 end
 
 function Lexer:peek(count)
@@ -207,6 +187,32 @@ function Lexer:readString()
     return Token.new(Token.kind[tokenName], start, self._position, asString)
 end
 
+function Lexer:readMultilineString()
+    local start = self._position
+    local charArray = {}
+    local tokenName = "MultilineString"
+
+    local multiQuote = self:accept("`")
+
+    while not self:accept(multiQuote) do
+        local char = self:advance()
+
+        if char == "\\" then
+            local escapeChar = self:advance()
+            local escapeSequences = Lexer.escapeSequences[escapeChar] or escapeChar
+            char = escapeSequences
+        elseif char == "" then
+            tokenName = "incompleteMultilineString"
+            break
+        end
+
+        table.insert(charArray, char)
+    end
+
+    local asString = table.concat(charArray)
+    return Token.new(Token.kind[tokenName], start, self._position, asString)
+end
+
 function Lexer:readComment()
     local start = self._position
     local charArray = {}
@@ -221,18 +227,26 @@ function Lexer:readComment()
     return Token.new(Token.kind.comment, start, self._position, asString)
 end
 
-function Lexer:readMultlineComment()
+function Lexer:readMultilineComment()
     local start = self._position
     local charArray = {}
+    local tokenName = "multilineComment"
 
     self:accept("/*")
 
     while not self:accept("*/") do
+        local char = self:peek() print(char)
+
+        if char == "" then
+            tokenName = "incompleteMultilineComment"
+            break
+        end
+
         table.insert(charArray, self:advance())
     end
 
     local asString = table.concat(charArray)
-    return Token.new(Token.kind.multilineComment, start, self._position, asString)
+    return Token.new(Token.kind[tokenName], start, self._position, asString)
 end
 
 function Lexer:readIden()
@@ -303,7 +317,7 @@ function Lexer:readUnknown()
     local operators = "" for operator, _ in pairs(Lexer.operators) do
         operators = operators .. operator
     end
-    local quote = "'" .. '"'
+    local quote = "'" .. '"' .. "`"
 
     while true do
         local char = self:peek()
@@ -327,11 +341,14 @@ function Lexer:read()
     if self:match("'") or self:match('"') then
         return self:readString()
     end
+    if self:match("`") then
+        return self:readMultilineString()
+    end
     if self:match("//") then
         return self:readComment()
     end
     if self:match("/*") then
-        return self:readMultlineComment()
+        return self:readMultilineComment()
     end
 
     for keyword, tokenType in pairs(Lexer.keywords) do

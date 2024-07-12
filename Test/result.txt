@@ -1,224 +1,341 @@
 {
     [1] = {
-        ["startPosition"] = 1;
         ["endPosition"] = 3;
+        ["startPosition"] = 1;
         ["kind"] = { "fn" };
     };
     [2] = {
+        ["endPosition"] = 8;
         ["startPosition"] = 4;
-        ["endPosition"] = 9;
         ["kind"] = { "iden" };
-        ["value"] = "print";
+        ["value"] = "fibo";
     };
     [3] = {
-        ["startPosition"] = 9;
-        ["endPosition"] = 10;
+        ["endPosition"] = 9;
+        ["startPosition"] = 8;
         ["kind"] = { "leftParen" };
     };
     [4] = {
-        ["startPosition"] = 10;
-        ["endPosition"] = 11;
-        ["kind"] = { "questionMark" };
+        ["endPosition"] = 10;
+        ["startPosition"] = 9;
+        ["kind"] = { "iden" };
+        ["value"] = "n";
     };
     [5] = {
-        ["startPosition"] = 11;
-        ["endPosition"] = 12;
+        ["endPosition"] = 11;
+        ["startPosition"] = 10;
         ["kind"] = { "rightParen" };
     };
     [6] = {
-        ["startPosition"] = 13;
-        ["endPosition"] = 15;
-        ["kind"] = { "do" };
+        ["endPosition"] = 13;
+        ["startPosition"] = 12;
+        ["kind"] = { "leftBrace" };
     };
     [7] = {
-        ["startPosition"] = 20;
-        ["endPosition"] = 25;
-        ["kind"] = { "iden" };
-        ["value"] = "stdio";
+        ["endPosition"] = 17;
+        ["startPosition"] = 15;
+        ["kind"] = { "if" };
     };
     [8] = {
-        ["startPosition"] = 25;
-        ["endPosition"] = 26;
-        ["kind"] = { "dot" };
+        ["endPosition"] = 19;
+        ["startPosition"] = 18;
+        ["kind"] = { "iden" };
+        ["value"] = "n";
     };
     [9] = {
-        ["startPosition"] = 26;
-        ["endPosition"] = 32;
-        ["kind"] = { "iden" };
-        ["value"] = "output";
+        ["endPosition"] = 21;
+        ["startPosition"] = 20;
+        ["kind"] = { "equalTo" };
     };
     [10] = {
-        ["startPosition"] = 32;
-        ["endPosition"] = 33;
-        ["kind"] = { "leftParen" };
+        ["endPosition"] = 23;
+        ["startPosition"] = 22;
+        ["kind"] = { "number" };
+        ["value"] = "1";
     };
     [11] = {
-        ["startPosition"] = 33;
-        ["endPosition"] = 34;
-        ["kind"] = { "questionMark" };
+        ["endPosition"] = 25;
+        ["startPosition"] = 24;
+        ["kind"] = { "leftBrace" };
     };
     [12] = {
-        ["startPosition"] = 34;
-        ["endPosition"] = 35;
-        ["kind"] = { "rightParen" };
+        ["endPosition"] = 34;
+        ["startPosition"] = 28;
+        ["kind"] = { "return" };
     };
     [13] = {
-        ["startPosition"] = 36;
-        ["endPosition"] = 39;
-        ["kind"] = { "end" };
+        ["endPosition"] = 36;
+        ["startPosition"] = 35;
+        ["kind"] = { "leftBracket" };
     };
     [14] = {
-        ["startPosition"] = 41;
-        ["endPosition"] = 106;
-        ["kind"] = { "multilineComment" };
-        ["value"] = " 함수 앞에 !를 붙혀서 쓰레드 분리도 가능 함 ";
+        ["endPosition"] = 37;
+        ["startPosition"] = 36;
+        ["kind"] = { "number" };
+        ["value"] = "1";
     };
     [15] = {
-        ["startPosition"] = 108;
-        ["endPosition"] = 113;
-        ["kind"] = { "iden" };
-        ["value"] = "print";
+        ["endPosition"] = 38;
+        ["startPosition"] = 37;
+        ["kind"] = { "rightBracket" };
     };
     [16] = {
-        ["startPosition"] = 113;
-        ["endPosition"] = 114;
-        ["kind"] = { "leftParen" };
+        ["endPosition"] = 41;
+        ["startPosition"] = 40;
+        ["kind"] = { "rightBrace" };
     };
     [17] = {
-        ["startPosition"] = 114;
-        ["endPosition"] = 121;
-        ["kind"] = { "string" };
-        ["value"] = "Hello";
+        ["endPosition"] = 45;
+        ["startPosition"] = 43;
+        ["kind"] = { "if" };
     };
     [18] = {
-        ["startPosition"] = 121;
-        ["endPosition"] = 122;
-        ["kind"] = { "rightParen" };
+        ["endPosition"] = 47;
+        ["startPosition"] = 46;
+        ["kind"] = { "iden" };
+        ["value"] = "n";
     };
     [19] = {
-        ["startPosition"] = 123;
-        ["endPosition"] = 152;
-        ["kind"] = { "multilineComment" };
-        ["value"] = " 서로 다른 쓰레드 ";
+        ["endPosition"] = 49;
+        ["startPosition"] = 48;
+        ["kind"] = { "equalTo" };
     };
     [20] = {
-        ["startPosition"] = 153;
-        ["endPosition"] = 154;
-        ["kind"] = { "exclamationMark" };
+        ["endPosition"] = 51;
+        ["startPosition"] = 50;
+        ["kind"] = { "number" };
+        ["value"] = "2";
     };
     [21] = {
-        ["startPosition"] = 154;
-        ["endPosition"] = 159;
-        ["kind"] = { "iden" };
-        ["value"] = "print";
+        ["endPosition"] = 53;
+        ["startPosition"] = 52;
+        ["kind"] = { "leftBrace" };
     };
     [22] = {
-        ["startPosition"] = 159;
-        ["endPosition"] = 160;
-        ["kind"] = { "leftParen" };
+        ["endPosition"] = 62;
+        ["startPosition"] = 56;
+        ["kind"] = { "return" };
     };
     [23] = {
-        ["startPosition"] = 160;
-        ["endPosition"] = 168;
-        ["kind"] = { "string" };
-        ["value"] = "world!";
+        ["endPosition"] = 67;
+        ["startPosition"] = 63;
+        ["kind"] = { "iden" };
+        ["value"] = "fibo";
     };
     [24] = {
-        ["startPosition"] = 168;
-        ["endPosition"] = 169;
-        ["kind"] = { "rightParen" };
+        ["endPosition"] = 68;
+        ["startPosition"] = 67;
+        ["kind"] = { "leftParen" };
     };
     [25] = {
-        ["startPosition"] = 170;
-        ["endPosition"] = 199;
-        ["kind"] = { "multilineComment" };
-        ["value"] = " 서로 다른 쓰레드 ";
+        ["endPosition"] = 69;
+        ["startPosition"] = 68;
+        ["kind"] = { "iden" };
+        ["value"] = "n";
     };
     [26] = {
-        ["startPosition"] = 201;
-        ["endPosition"] = 275;
-        ["kind"] = { "multilineComment" };
-        ["value"] = " 또한 함수는 일급 객체로서, 변수에 넣을 수도 있음 ";
+        ["endPosition"] = 71;
+        ["startPosition"] = 70;
+        ["kind"] = { "minus" };
     };
     [27] = {
-        ["startPosition"] = 277;
-        ["endPosition"] = 280;
-        ["kind"] = { "let" };
+        ["endPosition"] = 73;
+        ["startPosition"] = 72;
+        ["kind"] = { "number" };
+        ["value"] = "1";
     };
     [28] = {
-        ["startPosition"] = 281;
-        ["endPosition"] = 287;
-        ["kind"] = { "iden" };
-        ["value"] = "print2";
+        ["endPosition"] = 74;
+        ["startPosition"] = 73;
+        ["kind"] = { "rightParen" };
     };
     [29] = {
-        ["startPosition"] = 288;
-        ["endPosition"] = 290;
-        ["kind"] = { "equal" };
-    };
-    [30] = {
-        ["startPosition"] = 291;
-        ["endPosition"] = 293;
-        ["kind"] = { "fn" };
-    };
-    [31] = {
-        ["startPosition"] = 293;
-        ["endPosition"] = 294;
-        ["kind"] = { "leftParen" };
-    };
-    [32] = {
-        ["startPosition"] = 294;
-        ["endPosition"] = 295;
-        ["kind"] = { "questionMark" };
-    };
-    [33] = {
-        ["startPosition"] = 295;
-        ["endPosition"] = 296;
-        ["kind"] = { "rightParen" };
-    };
-    [34] = {
-        ["startPosition"] = 297;
-        ["endPosition"] = 299;
-        ["kind"] = { "do" };
-    };
-    [35] = {
-        ["startPosition"] = 304;
-        ["endPosition"] = 309;
-        ["kind"] = { "iden" };
-        ["value"] = "stdio";
-    };
-    [36] = {
-        ["startPosition"] = 309;
-        ["endPosition"] = 310;
+        ["endPosition"] = 76;
+        ["startPosition"] = 76;
         ["kind"] = { "dot" };
     };
-    [37] = {
-        ["startPosition"] = 310;
-        ["endPosition"] = 316;
+    [30] = {
+        ["endPosition"] = 77;
+        ["startPosition"] = 77;
+        ["kind"] = { "dot" };
+    };
+    [31] = {
+        ["endPosition"] = 79;
+        ["startPosition"] = 78;
+        ["kind"] = { "leftBracket" };
+    };
+    [32] = {
+        ["endPosition"] = 80;
+        ["startPosition"] = 79;
+        ["kind"] = { "number" };
+        ["value"] = "1";
+    };
+    [33] = {
+        ["endPosition"] = 81;
+        ["startPosition"] = 80;
+        ["kind"] = { "rightBracket" };
+    };
+    [34] = {
+        ["endPosition"] = 84;
+        ["startPosition"] = 83;
+        ["kind"] = { "rightBrace" };
+    };
+    [35] = {
+        ["endPosition"] = 90;
+        ["startPosition"] = 87;
+        ["kind"] = { "var" };
+    };
+    [36] = {
+        ["endPosition"] = 92;
+        ["startPosition"] = 91;
         ["kind"] = { "iden" };
-        ["value"] = "output";
+        ["value"] = "f";
+    };
+    [37] = {
+        ["endPosition"] = 95;
+        ["startPosition"] = 93;
+        ["kind"] = { "equal" };
     };
     [38] = {
-        ["startPosition"] = 316;
-        ["endPosition"] = 317;
-        ["kind"] = { "leftParen" };
+        ["endPosition"] = 100;
+        ["startPosition"] = 96;
+        ["kind"] = { "iden" };
+        ["value"] = "fibo";
     };
     [39] = {
-        ["startPosition"] = 317;
-        ["endPosition"] = 318;
-        ["kind"] = { "questionMark" };
+        ["endPosition"] = 101;
+        ["startPosition"] = 100;
+        ["kind"] = { "leftParen" };
     };
     [40] = {
-        ["startPosition"] = 318;
-        ["endPosition"] = 319;
-        ["kind"] = { "rightParen" };
+        ["endPosition"] = 102;
+        ["startPosition"] = 101;
+        ["kind"] = { "iden" };
+        ["value"] = "n";
     };
     [41] = {
-        ["startPosition"] = 320;
-        ["endPosition"] = 323;
-        ["kind"] = { "end" };
+        ["endPosition"] = 104;
+        ["startPosition"] = 103;
+        ["kind"] = { "minus" };
     };
     [42] = {
+        ["endPosition"] = 106;
+        ["startPosition"] = 105;
+        ["kind"] = { "number" };
+        ["value"] = "1";
+    };
+    [43] = {
+        ["endPosition"] = 107;
+        ["startPosition"] = 106;
+        ["kind"] = { "rightParen" };
+    };
+    [44] = {
+        ["endPosition"] = 116;
+        ["startPosition"] = 110;
+        ["kind"] = { "return" };
+    };
+    [45] = {
+        ["endPosition"] = 118;
+        ["startPosition"] = 117;
+        ["kind"] = { "iden" };
+        ["value"] = "a";
+    };
+    [46] = {
+        ["endPosition"] = 120;
+        ["startPosition"] = 120;
+        ["kind"] = { "dot" };
+    };
+    [47] = {
+        ["endPosition"] = 121;
+        ["startPosition"] = 121;
+        ["kind"] = { "dot" };
+    };
+    [48] = {
+        ["endPosition"] = 123;
+        ["startPosition"] = 122;
+        ["kind"] = { "leftBracket" };
+    };
+    [49] = {
+        ["endPosition"] = 124;
+        ["startPosition"] = 123;
+        ["kind"] = { "iden" };
+        ["value"] = "a";
+    };
+    [50] = {
+        ["endPosition"] = 125;
+        ["startPosition"] = 124;
+        ["kind"] = { "leftBracket" };
+    };
+    [51] = {
+        ["endPosition"] = 126;
+        ["startPosition"] = 125;
+        ["kind"] = { "hashtag" };
+    };
+    [52] = {
+        ["endPosition"] = 127;
+        ["startPosition"] = 126;
+        ["kind"] = { "iden" };
+        ["value"] = "a";
+    };
+    [53] = {
+        ["endPosition"] = 129;
+        ["startPosition"] = 128;
+        ["kind"] = { "minus" };
+    };
+    [54] = {
+        ["endPosition"] = 131;
+        ["startPosition"] = 130;
+        ["kind"] = { "number" };
+        ["value"] = "1";
+    };
+    [55] = {
+        ["endPosition"] = 132;
+        ["startPosition"] = 131;
+        ["kind"] = { "rightBracket" };
+    };
+    [56] = {
+        ["endPosition"] = 134;
+        ["startPosition"] = 133;
+        ["kind"] = { "plus" };
+    };
+    [57] = {
+        ["endPosition"] = 136;
+        ["startPosition"] = 135;
+        ["kind"] = { "iden" };
+        ["value"] = "a";
+    };
+    [58] = {
+        ["endPosition"] = 137;
+        ["startPosition"] = 136;
+        ["kind"] = { "leftBracket" };
+    };
+    [59] = {
+        ["endPosition"] = 138;
+        ["startPosition"] = 137;
+        ["kind"] = { "hashtag" };
+    };
+    [60] = {
+        ["endPosition"] = 139;
+        ["startPosition"] = 138;
+        ["kind"] = { "iden" };
+        ["value"] = "a";
+    };
+    [61] = {
+        ["endPosition"] = 140;
+        ["startPosition"] = 139;
+        ["kind"] = { "rightBracket" };
+    };
+    [62] = {
+        ["endPosition"] = 141;
+        ["startPosition"] = 140;
+        ["kind"] = { "rightBracket" };
+    };
+    [63] = {
+        ["endPosition"] = 143;
+        ["startPosition"] = 142;
+        ["kind"] = { "rightBrace" };
+    };
+    [64] = {
         ["kind"] = { "eof" };
     };
 };

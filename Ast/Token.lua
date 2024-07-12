@@ -4,16 +4,18 @@ local Token = {}
 Token.__index = Token
 
 Token.kind = Enumerate("Token.kind", {
-    "let", "if", "elif", "else", "for", "while", "each", "in", "fn", "true", "false", "null", "break", "return", "goto",
+    "var", "fn", "macro", "if", "elseif", "else", "for", "while", "each", "in", "void", "true", "false", "break", "return",
 
-    "plus", "minus", "star", "slash", "modulo", "hashtag", "caret", "semiColon", "colon", "dot", "comma", "tilde", "questionMark", "exclamationMark", "atTheRate", "dollar", "ampersand", "pipe",
+    "plus", "minus", "star", "slash", "modulo", "hashtag", "caret", "semiColon", "colon", "comma", "dot", "dot2", "dot3",
+    "questionMark", "exclamationMark", "ampersand", "pipe",
+
     "equal", "notEqual", "equalTo", "lessThan", "lessEqual", "greaterThan", "greaterEqual",
     "leftParen", "rightParen", "leftBrace", "rightBrace", "leftBracket", "rightBracket",
-    "plusEqual", "minusEqual", "starEqual", "slashEqual", "moduloEqual", "caretEqual", "tildeEqual",
+    "plusEqual", "minusEqual", "starEqual", "slashEqual", "moduloEqual", "caretEqual", "dot2Equal", "questionMarkEqual",
 
-    "comment", "multilineComment",
+    "comment", "multilineComment", "incompleteMultilineComment",
 
-    "iden", "string", "incompleteString", "number", "unknown", "eof"
+    "iden", "string", "incompleteString", "multilineString", "incompleteMultilineString", "number", "unknown", "eof"
 })
 
 function Token.new(tokenKind, startPosition, endPosition, value)

@@ -80,7 +80,7 @@ local function Dump(t, i)
 	return result
 end
 
-local file = io.open("test\\function.word", "r")
+local file = io.open("test\\test.word", "r")
 
 if file then
     local source = file:read("a")

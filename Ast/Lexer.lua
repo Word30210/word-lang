@@ -1,13 +1,30 @@
+--[[
+    TODO LIST
+
+    - Lexer:error() 더 예쁘게 만들기
+    -- errorArrow를 ^ 하나만 두지 말고, 문제가 되는 곳 전체에 두기
+
+    - Lexer:readNumber() 고치기
+
+    - Lexer:readBinaryNumber() 만들기
+    - Lexer:readUnsignedBinaryNumber() 만들기
+    - Lexer:readHexadecimalNumber() 만들기
+    - Lexer:readOctalNumber() 만들기
+
+    - 다른 subLexer들이 잘 작동하는지 테스트 하기
+]]--
+
 local Token = require("Ast.Token")
 
 local Lexer = {}
 Lexer.__index = Lexer
 
-Lexer.alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-Lexer.digit = "0123456789"
+Lexer.eof = ""
+Lexer.eol = "\n"
 Lexer.whitespace = "\32\t\n\r\f"
-Lexer.iden = Lexer.alphabet .. Lexer.digit .. "_"
-Lexer.number = Lexer.digit .. "."
+Lexer.digit = "0123456789"
+Lexer.alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+Lexer.hexadecimal = Lexer.digit .. "abcdefABCDEF"
 
 Lexer.escapeSequences = {
     ["a"] = "\a";
@@ -20,17 +37,6 @@ Lexer.escapeSequences = {
     ["\\"] = "\\";
     ["'"] = "'";
     ['"'] = '"';
-}
-
-Lexer.escapeSequenceToPlain = {
-    ["\a"] = "\\a";
-    ["\b"] = "\\b";
-    ["\f"] = "\\f";
-    ["\n"] = "\\n";
-    ["\r"] = "\\r";
-    ["\t"] = "\\t";
-    ["\v"] = "\\v";
-    ["\\"] = "\\\\";
 }
 
 Lexer.keywords = {
@@ -68,6 +74,9 @@ Lexer.operators = {
     ["&"] = Token.kind.ampersand;
     ["|"] = Token.kind.pipe;
 
+    [".."] = Token.kind.dot2;
+    ["..."] = Token.kind.dot3;
+
     [":="] = Token.kind.equal;
     ["<>"] = Token.kind.notEqual;
     ["="] = Token.kind.equalTo;
@@ -93,12 +102,15 @@ Lexer.operators = {
     [":?"] = Token.kind.questionMarkEqual;
 }
 
+Lexer.errorFormat = "\n===============YOUR CODE=================\n%s\n%s\n=========================================\nWordLanguage::Lexer | Syntax Error Cccurred! | Reason: %s"
+
 function Lexer.new(source)
     local self = {}
 
     self._source = source
     self._position = 1
     self._tokens = {}
+    self._char_array = {}
 
     return setmetatable(self, Lexer)
 end
@@ -125,11 +137,39 @@ function Lexer.sortOperators(operatorTable)
     return tables
 end
 
-function Lexer.find(s, pattern, init, plain)
-    if s == "" then return false end --// EOF
-    if pattern == "" then return false end --// EOF
+function Lexer:error(errorKind)
+    local code = ""
+    local errorArrow = ""
+    local eolCount = 0
 
-    return string.find(s, pattern, init, plain)
+    while eolCount <= 2 do
+        local char = self:peek()
+
+        if self:isEOF(char) then break end
+
+        if self:isEOL(char) then
+            eolCount = eolCount + 1
+        end
+
+        if eolCount < 1 then
+            if self:isWhitespace(char) then
+                errorArrow = char .. errorArrow
+            else
+                errorArrow = "\32" .. errorArrow
+            end
+        end
+
+        code = char .. code
+
+        self:move(-1)
+    end
+
+    error(Lexer.errorFormat:format(code, errorArrow:gsub(".$", ""):gsub(".$", "^"), errorKind))
+end
+
+function Lexer:move(count)
+    count = count or 1
+    self._position = self._position + count
 end
 
 function Lexer:peek(count)
@@ -161,10 +201,101 @@ function Lexer:accept(toMatch)
     return nil
 end
 
+function Lexer:consume(char)
+    table.insert(self._char_array, char)
+end
+
+function Lexer:concat(clear)
+    local asString = table.concat(self._char_array)
+
+    if clear then
+        self:clear()
+    end
+
+    return asString
+end
+
+function Lexer:clear()
+    for k, _ in pairs(self._char_array) do
+        self._char_array[k] = nil
+    end
+end
+
+function Lexer:isEOF(char)
+    if char == Lexer.eof then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:isEOL(char)
+    if char == Lexer.eol then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:isWhitespace(char)
+    if self:isEOF(char) then return false end
+
+    if self.whitespace:find(char, 1, true) then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:isDigit(char)
+    if self:isEOF(char) then return false end
+
+    if self.digit:find(char, 1, true) then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:isAlpha(char)
+    if self:isEOF(char) then return false end
+
+    if self.alphabet:find(char, 1, true) then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:isHex(char)
+    if self:isEOF(char) then return false end
+
+    if self.hexadecimal:find(char, 1, true) then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:isOperator(char)
+    if Lexer.operators[char] then
+        return true
+    else
+        return false
+    end
+end
+
+function Lexer:peektk()
+    return self._tokens[#self._tokens]
+end
+
+function Lexer:pervtk()
+    return self._tokens[#self._tokens - 1]
+end
+
 function Lexer:readString()
     local start = self._position
-    local charArray = {}
-    local tokenName = "string"
+    local tokenKind = "string"
 
     local quote = self:accept("'") or self:accept('"')
 
@@ -175,22 +306,20 @@ function Lexer:readString()
             local escapeChar = self:advance()
             local escapeSequences = Lexer.escapeSequences[escapeChar] or escapeChar
             char = escapeSequences
-        elseif char == "\n" or char == "" then
-            tokenName = "incompleteString"
-            break
+        elseif self:isEOF(self:peek()) or self:isEOL(self:peek()) then
+            self:error("incompleteString")
         end
 
-        table.insert(charArray, char)
+        self:consume(char)
     end
 
-    local asString = table.concat(charArray)
-    return Token.new(Token.kind[tokenName], start, self._position, asString)
+    local asString = self:concat(true)
+    return Token.new(Token.kind[tokenKind], start, self._position, asString)
 end
 
 function Lexer:readMultilineString()
     local start = self._position
-    local charArray = {}
-    local tokenName = "MultilineString"
+    local tokenKind = "MultilineString"
 
     local multiQuote = self:accept("`")
 
@@ -201,138 +330,153 @@ function Lexer:readMultilineString()
             local escapeChar = self:advance()
             local escapeSequences = Lexer.escapeSequences[escapeChar] or escapeChar
             char = escapeSequences
-        elseif char == "" then
-            tokenName = "incompleteMultilineString"
-            break
+        elseif self:isEOF(char) then
+            self:error("incompleteMultilineString")
         end
 
-        table.insert(charArray, char)
+        self:consume(char)
     end
 
-    local asString = table.concat(charArray)
-    return Token.new(Token.kind[tokenName], start, self._position, asString)
+    local asString = self:concat(true)
+    return Token.new(Token.kind[tokenKind], start, self._position, asString)
 end
 
 function Lexer:readComment()
     local start = self._position
-    local charArray = {}
 
     self:accept("//")
 
-    while not self:accept("\n") do
-        table.insert(charArray, self:advance())
+    while not self:accept(Lexer.eol) do
+        self:consume(self:advance())
     end
 
-    local asString = table.concat(charArray)
+    local asString = self:concat(true)
     return Token.new(Token.kind.comment, start, self._position, asString)
 end
 
 function Lexer:readMultilineComment()
     local start = self._position
-    local charArray = {}
-    local tokenName = "multilineComment"
+    local tokenKind = "multilineComment"
 
     self:accept("/*")
 
     while not self:accept("*/") do
-        local char = self:peek() print(char)
-
-        if char == "" then
-            tokenName = "incompleteMultilineComment"
-            break
+        if self:isEOF(self:peek()) then
+            self:error("incompleteMultilineComment")
         end
 
-        table.insert(charArray, self:advance())
+        self:consume(self:advance())
     end
 
-    local asString = table.concat(charArray)
-    return Token.new(Token.kind[tokenName], start, self._position, asString)
+    local asString = self:concat(true)
+    return Token.new(Token.kind[tokenKind], start, self._position, asString)
 end
 
 function Lexer:readIden()
     local start = self._position
-    local charArray = {}
 
-    while Lexer.iden:find(self:peek(), 1, true) do
-        if self:peek() == "" then break end --// EOF
-        table.insert(charArray, self:advance())
+    while self:isAlpha(self:peek()) or self:isDigit(self:peek()) or self:match("_") do
+        self:consume(self:advance())
     end
 
-    local asString = table.concat(charArray)
+    local asString = self:concat(true)
     return Token.new(Token.kind.iden, start, self._position, asString)
 end
 
 function Lexer:readNumber()
     local start = self._position
-    local charArray = {}
 
-    local dotCount = false
-    while true do
-        local char = self:peek()
+    local afterDot = false
+    local afterE = false
 
-        if char == "." then
-            if not dotCount then
-                dotCount = true
-            else break end
+    if self:match("0") then
+        if self:next() == "b" or self:next() == "B" then
+            return self:readBinaryNumber()
+        elseif self:next() == "u" or self:next() == "U" then
+            return self:readUnsignedBinaryNumber()
+        elseif self:next() == "x" or self:next() == "X" then
+            return self:readHexadecimalNumber()
+        elseif self:next() == "o" or self:next() == "O" then
+            return self:readOctalNumber()
         end
-
-        if self.find(Lexer.number, char, 1, true) then
-            table.insert(charArray, self:advance())
-        else break end
     end
 
-    local asString = table.concat(charArray)
-    return Token.new(Token.kind.number, start, self._position, asString)
+    while self:isDigit(self:peek()) or self:match(".") or self:match("_") do
+        if self:match(".") then
+            if afterDot then
+                self:error("malformedNumber")
+            else
+                afterDot = true
+            end
+        end
+
+        self:consume(self:advance())
+    end
+
+    if self:match("e") or self:match("E") then
+        afterE = true
+
+        self:consume(self:advance())
+
+        if self:match("+") or self:match("-") then
+            self:consume(self:advance())
+        end
+    else
+        self:error("malformedNumber")
+    end
+
+    while self:isAlpha(self:peek()) or self:isDigit(self:peek()) or self:match("_") do
+        if self:isAlpha(self:peek()) then
+            if self:match("e") or self:match("E") then
+                if afterE then
+                    self:error("malformedNumber")
+                else
+                    afterE = true
+                end
+            else
+                self:error("malformedNumber")
+            end
+        end
+
+        self:consume(self:advance())
+    end
 end
 
 function Lexer:readDot()
     local start = self._position
 
-    if self.find(Lexer.digit, self:peek(), 1, true) then
-        local charArray = { "." }
+    if self:isDigit(self:next()) then
+        return readNumber()
+    end
 
-        while true do
-            local char = self:peek()
-
-            if char == "." then break end
-
-            if self.find(Lexer.digit, char, 1, true) then
-                table.insert(charArray, self:advance())
-            else break end
-        end
-
-        local asString = table.concat(charArray)
-        return Token.new(Token.kind.number, start, self._position, asString)
+    if self:match("...") then
+        self:move(3)
+        return Token.new(Lexer.operator.dot3, start, self._position)
+    elseif self:match("..") then
+        self:move(2)
+        return Token.new(Lexer.operator.dot2, start, self._position)
     else
-        return Token.new(Token.kind.dot, start, self._position)
+        self:move(1)
+        return Token.new(Lexer.operator.dot, start, self._position)
     end
 end
 
 function Lexer:readUnknown()
     local start = self._position
-    local charArray = {}
-
-    local iden = Lexer.iden
-    local digit = Lexer.digit
-    local operators = "" for operator, _ in pairs(Lexer.operators) do
-        operators = operators .. operator
-    end
-    local quote = "'" .. '"' .. "`"
 
     while true do
-        local char = self:peek()
+        local char = self:advance()
 
-        if self.find(iden, char, 1, true) then break end
-        if self.find(digit, char, 1, true) then break end
-        if self.find(operators, char, 1, true) then break end
-        if self.find(quote, char, 1, true) then break end
-        if char == "" then break end
-
-        table.insert(charArray, self:advance())
+        if self:isEOF(char)
+            or self:isEOL(char)
+            or self:isWhitespace(char)
+            or self:isDigit(char)
+            or self:isAlpha(char)
+            or self:isOperator(char)
+        then
+            self:error("Unknown")
+        end
     end
-
-    local asString = table.concat(charArray)
-    return Token.new(Token.kind.unknown, start, self._position, asString)
 end
 
 function Lexer:read()
@@ -371,15 +515,14 @@ function Lexer:read()
         end
     end
 
-    local char = self:peek()
-    if Lexer.whitespace:find(char, 1, true) then
+    if self:isWhitespace(self:peek()) then
         self:advance()
         return true
     end
-    if Lexer.digit:find(char, 1, true) then
+    if self:isDigit(self:peek()) then
         return self:readNumber()
     end
-    if (Lexer.alphabet .. "_"):find(char, 1, true) then
+    if self:isAlpha(self:peek()) or self:match("_") then
         return self:readIden()
     end
 
@@ -395,6 +538,8 @@ function Lexer:scan()
         end
 
         if Token.is(token) then
+            print(token.kind[1], token.value, self._position)
+
             table.insert(self._tokens, token)
         end
     end

@@ -89,10 +89,7 @@ if file then
 
     local result = newLexer:scan()
     local dumpedTable = Dump(result)
-
-    for _, data in ipairs(result) do
-		print(data.value or data.kind[1], data.kind[1])
-	end
+	
     local result_txt = io.open("test\\result.txt", "w")
     if result_txt then
         result_txt:write(dumpedTable)

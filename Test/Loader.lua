@@ -83,7 +83,7 @@ end
 local file = io.open("test\\test.word", "r")
 
 if file then
-    local source = file:read("a")
+    local source = file:read("*a")
 
     local newLexer = Lexer.new(source)
 

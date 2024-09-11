@@ -1,17 +1,10 @@
 --[[
     TODO LIST
 
-    - Lexer:error() 더 예쁘게 만들기
-    -- errorArrow를 ^ 하나만 두지 말고, 문제가 되는 곳 전체에 두기
+    - Rust의 에러 메시지를 참고해서, Lexer:error() 업데이트 하기
 
-    - Lexer:readNumber() 고치기
-
-    - Lexer:readBinaryNumber() 만들기
-    - Lexer:readUnsignedBinaryNumber() 만들기
-    - Lexer:readHexadecimalNumber() 만들기
-    - Lexer:readOctalNumber() 만들기
-
-    - 다른 subLexer들이 잘 작동하는지 테스트 하기
+    - 객체지향 문법 설계하기
+    - 비동기 문법 설계하기
 ]]--
 
 local Token = require("Ast.Token")
@@ -25,6 +18,7 @@ Lexer.whitespace = "\32\t\n\r\f"
 Lexer.digit = "0123456789"
 Lexer.alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 Lexer.hexadecimal = Lexer.digit .. "abcdefABCDEF"
+Lexer.octal = "01234567"
 
 Lexer.escapeSequences = {
     ["a"] = "\a";
@@ -42,7 +36,6 @@ Lexer.escapeSequences = {
 Lexer.keywords = {
     ["var"] = Token.kind.var;
     ["fn"] = Token.kind.fn;
-    ["macro"] = Token.kind.macro;
     ["if"] = Token.kind["if"];
     ["elseif"] = Token.kind["elseif"];
     ["else"] = Token.kind["else"];
@@ -102,7 +95,7 @@ Lexer.operators = {
     [":?"] = Token.kind.questionMarkEqual;
 }
 
-Lexer.errorFormat = "\n===============YOUR CODE=================\n%s\n%s\n=========================================\nWordLanguage::Lexer | Syntax Error Cccurred! | Reason: %s"
+Lexer.errorFormat = "\n===============YOUR CODE=================\n%s\n%s\n=========================================\nWordLanguage::Lexer | Syntax Error Occurred! | Reason: %s"
 
 function Lexer.new(source)
     local self = {}
@@ -277,6 +270,16 @@ function Lexer:isHex(char)
     end
 end
 
+function Lexer:isOctal(char)
+    if self:isEOF(char) then return false end
+
+    if self.octal:find(char, 1, true) then
+        return true
+    else
+        return false
+    end
+end
+
 function Lexer:isOperator(char)
     if Lexer.operators[char] then
         return true
@@ -392,8 +395,6 @@ function Lexer:readNumber()
     if self:match("0") then
         if self:next() == "b" or self:next() == "B" then
             return self:readBinaryNumber()
-        elseif self:next() == "u" or self:next() == "U" then
-            return self:readUnsignedBinaryNumber()
         elseif self:next() == "x" or self:next() == "X" then
             return self:readHexadecimalNumber()
         elseif self:next() == "o" or self:next() == "O" then
@@ -421,7 +422,7 @@ function Lexer:readNumber()
         if self:match("+") or self:match("-") then
             self:consume(self:advance())
         end
-    else
+    elseif self:isAlpha(self:peek()) then
         self:error("malformedNumber")
     end
 
@@ -440,13 +441,85 @@ function Lexer:readNumber()
 
         self:consume(self:advance())
     end
+
+    local asString = self:concat(true)
+    return Token.new(Token.kind.number, start, self._position, asString)
+end
+
+function Lexer:readBinaryNumber()
+    local start = self._position
+
+    if not self:accept("0b") then
+        self:accept("0B")
+    end
+
+    if self:isEOF(self:peek()) or self:isWhitespace(self:peek()) then
+        self:error("malformedNumber")
+    end
+
+    while not(self:isEOF(self:peek()) or self:isWhitespace(self:peek())) do
+        if self:match("0") or self:match("1") then
+            self:consume(self:advance())
+        else
+            self:error("malformedNumber")
+        end
+    end
+
+    local asString = self:concat(true)
+    return Token.new(Token.kind.binaryNumber, start, self._position, asString)
+end
+
+function Lexer:readHexadecimalNumber()
+    local start = self._position
+
+    if not self:accept("0x") then
+        self:accept("0X")
+    end
+
+    if self:isEOF(self:peek()) or self:isWhitespace(self:peek()) then
+        self:error("malformedNumber")
+    end
+
+    while not(self:isEOF(self:peek()) or self:isWhitespace(self:peek())) do
+        if self:isHex(self:peek()) then
+            self:consume(self:advance())
+        else
+            self:error("malformedNumber")
+        end
+    end
+
+    local asString = self:concat(true)
+    return Token.new(Token.kind.hexadecimalNumber, start, self._position, asString)
+end
+
+function Lexer:readOctalNumber()
+    local start = self._position
+
+    if not self:accept("0o") then
+        self:accept("0O")
+    end
+
+    if self:isEOF(self:peek()) or self:isWhitespace(self:peek()) then
+        self:error("malformedNumber")
+    end
+
+    while not(self:isEOF(self:peek()) or self:isWhitespace(self:peek())) do
+        if self:isOctal(self:peek()) then
+            self:consume(self:advance())
+        else
+            self:error("malformedNumber")
+        end
+    end
+
+    local asString = self:concat(true)
+    return Token.new(Token.kind.octalNumber, start, self._position, asString)
 end
 
 function Lexer:readDot()
     local start = self._position
 
     if self:isDigit(self:next()) then
-        return readNumber()
+        return self:readNumber()
     end
 
     if self:match("...") then
@@ -505,12 +578,13 @@ function Lexer:read()
         local operatorGroup = Lexer.operators[operatorLength]
 
         for operator, tokenType in pairs(operatorGroup) do
-            if self:accept(operator) then
+            if self:match(operator) then
                 if operator == "." then
                     return self:readDot()
+                else
+                    self:accept(operator)
+                    return Token.new(tokenType, start, self._position)
                 end
-
-                return Token.new(tokenType, start, self._position)
             end
         end
     end
@@ -538,7 +612,7 @@ function Lexer:scan()
         end
 
         if Token.is(token) then
-            print(token.kind[1], token.value, self._position)
+            print(token.kind[1], token.value)
 
             table.insert(self._tokens, token)
         end
